@@ -3,7 +3,7 @@ services:
     name: greenscan
     runtime: python
     buildCommand: bash render_build.sh
-    startCommand: gunicorn app:app
+    startCommand: python app.py
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
