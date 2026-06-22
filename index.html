@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GreenScan — Lawn & Tree Diagnostics</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Inter:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --forest: #1C2B1A;
+    --parchment: #F5F0E8;
+    --amber: #C89B30;
+    --green-mid: #3B6D11;
+    --green-light: #EAF3DE;
+    --red-mid: #A32D2D;
+    --red-light: #FCEBEB;
+    --amber-light: #FAEEDA;
+    --amber-dark: #633806;
+    --gray-muted: #6B6B65;
+    --border: rgba(0,0,0,0.10);
+    --white: #ffffff;
+  }
+
+  body { font-family: 'Inter', sans-serif; background: var(--parchment); color: #1a1a18; min-height: 100vh; }
+
+  header {
+    background: var(--forest);
+    padding: 1.25rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  header .logo-mark {
+    width: 36px; height: 36px;
+    border: 1.5px solid rgba(255,255,255,0.25);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px; font-weight: 500; color: #fff; letter-spacing: 0.01em;
+  }
+  header .tagline {
+    font-size: 13px; color: rgba(255,255,255,0.45);
+    margin-left: auto; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500;
+  }
+
+  .mode-tabs {
+    background: var(--forest);
+    display: flex;
+    gap: 0;
+    padding: 0 2rem;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .mode-tab {
+    padding: 0.75rem 1.25rem;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.45);
+    cursor: pointer;
+    border-bottom: 2.5px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    letter-spacing: 0.02em;
+    user-select: none;
+  }
+  .mode-tab:hover { color: rgba(255,255,255,0.75); }
+  .mode-tab.active { color: #fff; border-bottom-color: #7ABF5A; }
+
+  main { max-width: 860px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+
+  .upload-zone {
+    background: var(--white);
+    border: 1.5px dashed rgba(0,0,0,0.18);
+    border-radius: 14px;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--green-mid); background: var(--green-light); }
+  .upload-zone.weed-mode:hover, .upload-zone.weed-mode.drag-over { border-color: var(--amber); background: var(--amber-light); }
+  .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { font-size: 48px; margin-bottom: 1rem; }
+  .upload-zone h2 { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 500; color: #1a1a18; margin-bottom: 0.5rem; }
+  .upload-zone p { font-size: 14px; color: var(--gray-muted); }
+  .upload-zone .hint { margin-top: 1rem; font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500; }
+
+  .preview-area { margin-top: 1.5rem; display: none; gap: 1.5rem; align-items: flex-start; }
+  .preview-area.visible { display: flex; flex-wrap: wrap; }
+
+  .preview-img-wrap {
+    flex: 0 0 auto; width: 260px;
+    border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--white);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .preview-img-wrap img { display: block; width: 100%; height: 200px; object-fit: cover; }
+  .preview-img-wrap .img-caption { padding: 10px 14px; font-size: 12px; color: var(--gray-muted); border-top: 1px solid var(--border); }
+
+  .analyze-panel { flex: 1; min-width: 200px; }
+  .analyze-panel h3 { font-size: 15px; font-weight: 500; margin-bottom: 0.75rem; color: #1a1a18; }
+  .context-input {
+    width: 100%; padding: 10px 12px;
+    border: 1px solid var(--border); border-radius: 8px;
+    font-size: 14px; font-family: 'Inter', sans-serif;
+    background: var(--white); color: #1a1a18;
+    resize: vertical; min-height: 80px; margin-bottom: 1rem;
+  }
+  .context-input:focus { outline: none; border-color: var(--green-mid); }
+
+  .btn-analyze {
+    width: 100%; background: var(--forest); color: #fff;
+    border: none; border-radius: 8px; padding: 12px 20px;
+    font-size: 15px; font-family: 'Inter', sans-serif; font-weight: 500;
+    cursor: pointer; letter-spacing: 0.01em; transition: background 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-analyze:hover { background: #2d4a2a; }
+  .btn-analyze.weed-btn { background: #7A5C1E; }
+  .btn-analyze.weed-btn:hover { background: #5e4416; }
+  .btn-analyze:disabled { background: #aaa; cursor: not-allowed; }
+
+  .spinner {
+    display: none; width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .report-card {
+    display: none; margin-top: 2rem; background: var(--white);
+    border-radius: 14px; border: 1px solid var(--border); overflow: hidden;
+  }
+  .report-card.visible { display: block; }
+
+  .report-header {
+    background: var(--forest); color: #fff;
+    padding: 1.25rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px;
+  }
+  .report-header.weed-header { background: #3D2B0A; }
+  .report-header .label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.5); font-weight: 500; margin-bottom: 4px; }
+  .report-header h2 { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 500; color: #fff; }
+  .report-header .sci-name { font-size: 14px; color: rgba(255,255,255,0.55); font-style: italic; margin-top: 3px; }
+
+  .severity-badge { padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  .sev-low { background: #EAF3DE; color: #27500A; }
+  .sev-moderate { background: #FAEEDA; color: #633806; }
+  .sev-high { background: #FCEBEB; color: #791F1F; }
+  .sev-healthy { background: #EAF3DE; color: #27500A; }
+  .sev-invasive { background: #FCEBEB; color: #791F1F; }
+  .sev-common { background: #FAEEDA; color: #633806; }
+  .sev-minor { background: #EAF3DE; color: #27500A; }
+
+  .report-body { padding: 1.5rem; }
+  .section-label {
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--gray-muted); font-weight: 600;
+    margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+
+  .findings-list { list-style: none; margin-bottom: 1.5rem; }
+  .findings-list li {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.05);
+    font-size: 14px; line-height: 1.5;
+  }
+  .findings-list li:last-child { border-bottom: none; }
+  .finding-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .dot-high { background: #E24B4A; }
+  .dot-moderate { background: #EF9F27; }
+  .dot-low { background: #639922; }
+  .dot-info { background: #378ADD; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+  @media (max-width: 600px) { .two-col, .three-col { grid-template-columns: 1fr; } }
+
+  .info-block { background: #F8F6F2; border-radius: 10px; padding: 1rem 1.1rem; }
+  .info-block .ib-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gray-muted); font-weight: 600; margin-bottom: 8px; }
+  .info-block p { font-size: 14px; line-height: 1.6; color: #2a2a26; }
+
+  .stat-pill {
+    display: inline-block;
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 13px; font-weight: 500;
+  }
+  .pill-annual { background: #EAF3DE; color: #27500A; }
+  .pill-perennial { background: #FCEBEB; color: #791F1F; }
+  .pill-biennial { background: #FAEEDA; color: #633806; }
+  .pill-grassy { background: #EAF3DE; color: #27500A; }
+  .pill-broadleaf { background: #E6F1FB; color: #0C447C; }
+  .pill-sedge { background: #FAEEDA; color: #633806; }
+  .pill-default { background: #F1EFE8; color: #444441; }
+
+  .treatment-list { list-style: none; }
+  .treatment-list li {
+    font-size: 14px; padding: 8px 0 8px 20px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    line-height: 1.5; position: relative; color: #2a2a26;
+  }
+  .treatment-list li:last-child { border-bottom: none; }
+  .treatment-list li::before { content: '→'; position: absolute; left: 0; color: var(--amber); font-weight: 600; }
+
+  .urgency-bar {
+    display: flex; align-items: center; gap: 12px;
+    background: #F8F6F2; border-radius: 10px; padding: 0.9rem 1.1rem; margin-top: 1.25rem;
+  }
+  .urgency-bar .u-icon { font-size: 22px; }
+  .urgency-bar .u-text { font-size: 14px; color: #2a2a26; line-height: 1.5; }
+  .urgency-bar .u-text strong { font-weight: 600; }
+
+  .lookalike-block {
+    margin-top: 1.25rem;
+    border: 1px solid rgba(200,155,48,0.3);
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+    background: #FFFBF0;
+  }
+  .lookalike-block .lb-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: #7A5C1E; font-weight: 600; margin-bottom: 8px; }
+  .lookalike-block p { font-size: 14px; line-height: 1.6; color: #3a3020; }
+
+  .report-footer {
+    border-top: 1px solid var(--border); padding: 0.9rem 1.5rem;
+    font-size: 12px; color: var(--gray-muted);
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+  }
+  .new-scan-btn {
+    background: transparent; border: 1px solid rgba(0,0,0,0.15);
+    border-radius: 6px; padding: 5px 14px; font-size: 12px;
+    font-family: 'Inter', sans-serif; cursor: pointer; color: #1a1a18;
+    font-weight: 500; transition: background 0.15s;
+  }
+  .new-scan-btn:hover { background: #f0ede6; }
+
+  .error-msg {
+    display: none; margin-top: 1rem;
+    background: var(--red-light); border: 1px solid rgba(163,45,45,0.2);
+    border-radius: 8px; padding: 12px 16px; font-size: 14px; color: var(--red-mid);
+  }
+  .error-msg.visible { display: block; }
+
+  .weed-id-section { margin-top: 1.5rem; }
+  .confidence-bar-wrap { margin-top: 6px; }
+  .confidence-bar-bg { background: #EDE9DF; border-radius: 4px; height: 6px; overflow: hidden; }
+  .confidence-bar-fill { height: 100%; border-radius: 4px; background: #C89B30; transition: width 0.4s ease; }
+  .confidence-label { font-size: 12px; color: var(--gray-muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">🌿</div>
+  <h1>GreenScan</h1>
+  <span class="tagline">AI Field Diagnostics</span>
+</header>
+
+<div class="mode-tabs">
+  <div class="mode-tab active" id="tab-diag" onclick="setMode('diagnostic')">🔬 Lawn &amp; Tree Diagnosis</div>
+  <div class="mode-tab" id="tab-weed" onclick="setMode('weed')">🌾 Weed Identification</div>
+</div>
+
+<main>
+
+  <!-- hidden inputs -->
+  <input type="file" id="fileInput" accept="image/*" style="display:none">
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
+
+  <div class="upload-zone" id="uploadZone">
+    <div class="upload-icon" id="uploadIcon">📷</div>
+    <h2 id="uploadTitle">Scan your lawn or tree</h2>
+    <p id="uploadSubtitle">Browning patches, wilting leaves, discoloration, bark damage — snap it and scan it</p>
+    <div class="upload-btn-row">
+      <button class="upload-btn" onclick="document.getElementById('cameraInput').click()">
+        📸 Take a photo
+      </button>
+      <button class="upload-btn upload-btn-secondary" onclick="document.getElementById('fileInput').click()">
+        🖼 Choose from library
+      </button>
+    </div>
+    <p class="hint" style="margin-top:1.25rem">JPG / PNG / WEBP &nbsp;·&nbsp; Up to 20 MB</p>
+  </div>
+
+  <div class="preview-area" id="previewArea">
+    <div class="preview-img-wrap">
+      <img id="previewImg" src="" alt="Uploaded plant photo">
+      <div class="img-caption" id="imgCaption">Uploaded image</div>
+    </div>
+    <div class="analyze-panel">
+      <h3 id="contextLabel">Optional: describe what you're seeing</h3>
+      <textarea class="context-input" id="contextInput" placeholder="E.g. This patch appeared two weeks ago after a rain. The lawn is St. Augustine grass…"></textarea>
+      <button class="btn-analyze" id="analyzeBtn" onclick="runAnalysis()">
+        <span class="spinner" id="spinner"></span>
+        <span id="btnText">Run field diagnosis</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="error-msg" id="errorMsg"></div>
+
+  <!-- Diagnostic Report -->
+  <div class="report-card" id="diagReport">
+    <div class="report-header" id="diagHeader">
+      <div>
+        <div class="label">GreenScan Field Report</div>
+        <h2 id="reportTitle">Diagnosis</h2>
+      </div>
+      <div class="severity-badge" id="severityBadge">—</div>
+    </div>
+    <div class="report-body">
+      <div class="section-label">Identified conditions</div>
+      <ul class="findings-list" id="findingsList"></ul>
+      <div class="two-col">
+        <div class="info-block"><div class="ib-label">Root causes</div><p id="rootCauses"></p></div>
+        <div class="info-block"><div class="ib-label">Risk to surrounding area</div><p id="spreadRisk"></p></div>
+      </div>
+      <div style="margin-top:1.5rem">
+        <div class="section-label">Recommended treatments</div>
+        <ul class="treatment-list" id="treatmentList"></ul>
+      </div>
+      <div class="urgency-bar">
+        <div class="u-icon">⏱</div>
+        <div class="u-text" id="urgencyText"></div>
+      </div>
+    </div>
+    <div class="report-footer">
+      <span id="diagTimestamp"></span>
+      <button class="new-scan-btn" onclick="resetScan()">New scan</button>
+    </div>
+  </div>
+
+  <!-- Weed ID Report -->
+  <div class="report-card" id="weedReport">
+    <div class="report-header weed-header">
+      <div>
+        <div class="label">GreenScan Weed Identification</div>
+        <h2 id="weedCommonName">Weed Species</h2>
+        <div class="sci-name" id="weedSciName"></div>
+      </div>
+      <div class="severity-badge" id="weedThreatBadge">—</div>
+    </div>
+    <div class="report-body">
+
+      <div class="section-label">Taxonomy &amp; classification</div>
+      <div class="three-col" style="margin-bottom:1.5rem">
+        <div class="info-block">
+          <div class="ib-label">Weed type</div>
+          <p id="weedType"></p>
+        </div>
+        <div class="info-block">
+          <div class="ib-label">Life cycle</div>
+          <p id="weedLifecycle"></p>
+        </div>
+        <div class="info-block">
+          <div class="ib-label">Family</div>
+          <p id="weedFamily"></p>
+        </div>
+      </div>
+
+      <div class="section-label">Identification confidence</div>
+      <div class="confidence-bar-wrap" style="margin-bottom:1.5rem">
+        <div class="confidence-bar-bg"><div class="confidence-bar-fill" id="confBar" style="width:0%"></div></div>
+        <div class="confidence-label" id="confLabel"></div>
+      </div>
+
+      <div class="section-label">Why it's a problem</div>
+      <div class="two-col" style="margin-bottom:1.5rem">
+        <div class="info-block"><div class="ib-label">How it spreads</div><p id="weedSpread"></p></div>
+        <div class="info-block"><div class="ib-label">Impact on lawn / trees</div><p id="weedImpact"></p></div>
+      </div>
+
+      <div class="section-label">Control methods</div>
+      <ul class="treatment-list" id="weedControls"></ul>
+
+      <div class="lookalike-block" id="lookalikesBlock">
+        <div class="lb-label">⚠ Look-alike species — don't confuse with</div>
+        <p id="weedLookalikes"></p>
+      </div>
+
+      <div class="urgency-bar" style="margin-top:1.25rem">
+        <div class="u-icon">📅</div>
+        <div class="u-text" id="weedTiming"></div>
+      </div>
+
+    </div>
+    <div class="report-footer">
+      <span id="weedTimestamp"></span>
+      <button class="new-scan-btn" onclick="resetScan()">New scan</button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+let imageBase64 = null;
+let imageMediaType = null;
+let currentMode = 'diagnostic';
+
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+const previewArea = document.getElementById('previewArea');
+const previewImg = document.getElementById('previewImg');
+const imgCaption = document.getElementById('imgCaption');
+const errorMsg = document.getElementById('errorMsg');
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('tab-diag').classList.toggle('active', mode === 'diagnostic');
+  document.getElementById('tab-weed').classList.toggle('active', mode === 'weed');
+
+  const isWeed = mode === 'weed';
+  uploadZone.classList.toggle('weed-mode', isWeed);
+  document.getElementById('uploadIcon').textContent = isWeed ? '🌾' : '📷';
+  document.getElementById('uploadTitle').textContent = isWeed
+    ? 'Upload a photo of a weed to identify'
+    : 'Upload a photo of your lawn or tree';
+  document.getElementById('uploadSubtitle').textContent = isWeed
+    ? 'Close-up shots of leaves, stems, flowers, or seed heads give the best results'
+    : 'Browning patches, wilting leaves, discoloration, bark damage — snap it and scan it';
+  document.getElementById('contextLabel').textContent = isWeed
+    ? 'Optional: where did you find it?'
+    : 'Optional: describe what you\'re seeing';
+  document.getElementById('contextInput').placeholder = isWeed
+    ? 'E.g. Found in my Kentucky bluegrass lawn in Colorado. Growing in a shaded patch near the fence…'
+    : 'E.g. This patch appeared two weeks ago after a rain. The lawn is St. Augustine grass…';
+  document.getElementById('btnText').textContent = isWeed ? 'Identify weed species' : 'Run field diagnosis';
+
+  const btn = document.getElementById('analyzeBtn');
+  btn.classList.toggle('weed-btn', isWeed);
+
+  document.getElementById('diagReport').classList.remove('visible');
+  document.getElementById('weedReport').classList.remove('visible');
+  errorMsg.classList.remove('visible');
+}
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadFile(fileInput.files[0]); });
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const dataUrl = ev.target.result;
+    imageBase64 = dataUrl.split(',')[1];
+    imageMediaType = file.type || 'image/jpeg';
+    previewImg.src = dataUrl;
+    imgCaption.textContent = file.name + ' · ' + (file.size / 1024).toFixed(0) + ' KB';
+    previewArea.classList.add('visible');
+    document.getElementById('diagReport').classList.remove('visible');
+    document.getElementById('weedReport').classList.remove('visible');
+    errorMsg.classList.remove('visible');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function runAnalysis() {
+  if (!imageBase64) return;
+  const btn = document.getElementById('analyzeBtn');
+  const spinner = document.getElementById('spinner');
+  const btnText = document.getElementById('btnText');
+  btn.disabled = true;
+  spinner.style.display = 'block';
+  btnText.textContent = 'Analyzing…';
+  document.getElementById('diagReport').classList.remove('visible');
+  document.getElementById('weedReport').classList.remove('visible');
+  errorMsg.classList.remove('visible');
+
+  const context = document.getElementById('contextInput').value.trim();
+
+  try {
+    if (currentMode === 'diagnostic') {
+      await runDiagnostic(context, btn, spinner, btnText);
+    } else {
+      await runWeedID(context, btn, spinner, btnText);
+    }
+  } catch(e) {
+    showError('Analysis failed: ' + (e.message || 'Unknown error. Please try again.'));
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    btnText.textContent = currentMode === 'weed' ? 'Identify weed species' : 'Run field diagnosis';
+  }
+}
+
+async function runDiagnostic(context, btn, spinner, btnText) {
+  const system = `You are an expert plant pathologist and certified arborist. You diagnose lawn and tree problems from photos with precision and practical advice. Always respond in valid JSON only. No preamble, no markdown fences.`;
+  const prompt = `Analyze this lawn or tree photo and identify any health problems, diseases, pests, or environmental stress.
+${context ? 'Context: ' + context : ''}
+Respond ONLY with this JSON shape:
+{
+  "title": "short diagnosis headline",
+  "severity": "healthy" | "low" | "moderate" | "high",
+  "findings": [{ "label": "name", "detail": "one sentence", "severity": "info"|"low"|"moderate"|"high" }],
+  "root_causes": "2-3 sentences",
+  "spread_risk": "1-2 sentences",
+  "treatments": ["step 1", "step 2", "...up to 6"],
+  "urgency": "one sentence on timing"
+}`;
+
+  const resp = await callAPI(system, prompt);
+  const result = JSON.parse(resp);
+  renderDiagnostic(result);
+}
+
+async function runWeedID(context, btn, spinner, btnText) {
+  const system = `You are a certified weed scientist and botanist with expertise in turfgrass and landscape weeds across North America. You identify weed species from photos with high accuracy and provide actionable control guidance. Always respond in valid JSON only. No preamble, no markdown fences.`;
+  const prompt = `Identify the weed species shown in this photo and provide detailed information for control.
+${context ? 'Context: ' + context : ''}
+Respond ONLY with this JSON shape:
+{
+  "common_name": "most common name for this weed",
+  "scientific_name": "Genus species",
+  "family": "botanical family name",
+  "weed_type": "grassy" | "broadleaf" | "sedge" | "vine" | "woody",
+  "life_cycle": "annual" | "perennial" | "biennial" | "winter annual",
+  "threat_level": "invasive" | "common" | "minor",
+  "confidence": 0-100,
+  "confidence_note": "one sentence explaining confidence level and any visual ambiguity",
+  "spread": "2 sentences on how it reproduces and spreads",
+  "impact": "2 sentences on damage to lawns, turf, or trees",
+  "controls": ["control method 1", "control method 2", "...up to 7 methods covering cultural, mechanical, and chemical options"],
+  "best_timing": "one sentence on the optimal window to treat or remove",
+  "lookalikes": "1-2 sentences on species that look similar and how to tell them apart, or 'None notable' if no close lookalikes"
+}`;
+
+  const resp = await callAPI(system, prompt);
+  const result = JSON.parse(resp);
+  renderWeedID(result);
+}
+
+async function callAPI(system, userPrompt) {
+  const resp = await fetch('/api/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      system,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: imageMediaType, data: imageBase64 } },
+          { type: 'text', text: userPrompt }
+        ]
+      }]
+    })
+  });
+  const data = await resp.json();
+  const raw = data.content?.find(b => b.type === 'text')?.text || '';
+  const clean = raw.replace(/```json|```/g, '').trim();
+
+  const btn = document.getElementById('analyzeBtn');
+  const spinner = document.getElementById('spinner');
+  const btnText = document.getElementById('btnText');
+  btn.disabled = false;
+  spinner.style.display = 'none';
+  btnText.textContent = currentMode === 'weed' ? 'Identify weed species' : 'Run field diagnosis';
+
+  return clean;
+}
+
+function renderDiagnostic(r) {
+  document.getElementById('reportTitle').textContent = r.title || 'Field Diagnosis';
+  const badge = document.getElementById('severityBadge');
+  badge.textContent = cap(r.severity || 'unknown');
+  badge.className = 'severity-badge sev-' + (r.severity || 'low');
+
+  const fl = document.getElementById('findingsList');
+  fl.innerHTML = '';
+  (r.findings || []).forEach(f => {
+    const li = document.createElement('li');
+    const dc = { high:'dot-high', moderate:'dot-moderate', low:'dot-low', info:'dot-info' }[f.severity] || 'dot-info';
+    li.innerHTML = `<span class="finding-dot ${dc}"></span><span><strong style="font-weight:500">${f.label}</strong> — ${f.detail}</span>`;
+    fl.appendChild(li);
+  });
+
+  document.getElementById('rootCauses').textContent = r.root_causes || '—';
+  document.getElementById('spreadRisk').textContent = r.spread_risk || '—';
+
+  const tl = document.getElementById('treatmentList');
+  tl.innerHTML = '';
+  (r.treatments || []).forEach(t => { const li = document.createElement('li'); li.textContent = t; tl.appendChild(li); });
+
+  document.getElementById('urgencyText').innerHTML = `<strong>When to act:</strong> ${r.urgency || '—'}`;
+  document.getElementById('diagTimestamp').textContent = 'Scanned ' + timestamp();
+  document.getElementById('diagReport').classList.add('visible');
+  document.getElementById('diagReport').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderWeedID(r) {
+  document.getElementById('weedCommonName').textContent = r.common_name || 'Unknown weed';
+  document.getElementById('weedSciName').textContent = r.scientific_name || '';
+  document.getElementById('weedFamily').textContent = r.family || '—';
+
+  const threatBadge = document.getElementById('weedThreatBadge');
+  const threatMap = { invasive: 'Invasive', common: 'Common', minor: 'Minor nuisance' };
+  threatBadge.textContent = threatMap[r.threat_level] || cap(r.threat_level || 'unknown');
+  threatBadge.className = 'severity-badge sev-' + (r.threat_level || 'common');
+
+  const typeMap = { grassy:'pill-grassy', broadleaf:'pill-broadleaf', sedge:'pill-sedge' };
+  const typeClass = typeMap[r.weed_type] || 'pill-default';
+  document.getElementById('weedType').innerHTML = `<span class="stat-pill ${typeClass}">${cap(r.weed_type || '—')}</span>`;
+
+  const lcMap = { annual:'pill-annual', perennial:'pill-perennial', biennial:'pill-biennial', 'winter annual':'pill-annual' };
+  const lcClass = lcMap[r.life_cycle] || 'pill-default';
+  document.getElementById('weedLifecycle').innerHTML = `<span class="stat-pill ${lcClass}">${cap(r.life_cycle || '—')}</span>`;
+
+  const conf = Math.min(100, Math.max(0, r.confidence || 0));
+  document.getElementById('confBar').style.width = conf + '%';
+  document.getElementById('confLabel').textContent = conf + '% confidence — ' + (r.confidence_note || '');
+
+  document.getElementById('weedSpread').textContent = r.spread || '—';
+  document.getElementById('weedImpact').textContent = r.impact || '—';
+
+  const wc = document.getElementById('weedControls');
+  wc.innerHTML = '';
+  (r.controls || []).forEach(c => { const li = document.createElement('li'); li.textContent = c; wc.appendChild(li); });
+
+  const la = r.lookalikes || '';
+  const laBlock = document.getElementById('lookalikesBlock');
+  if (!la || la.toLowerCase().includes('none notable')) {
+    laBlock.style.display = 'none';
+  } else {
+    laBlock.style.display = 'block';
+    document.getElementById('weedLookalikes').textContent = la;
+  }
+
+  document.getElementById('weedTiming').innerHTML = `<strong>Best treatment window:</strong> ${r.best_timing || '—'}`;
+  document.getElementById('weedTimestamp').textContent = 'Scanned ' + timestamp();
+  document.getElementById('weedReport').classList.add('visible');
+  document.getElementById('weedReport').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function showError(msg) { errorMsg.textContent = msg; errorMsg.classList.add('visible'); }
+
+function resetScan() {
+  imageBase64 = null; imageMediaType = null;
+  fileInput.value = '';
+  previewArea.classList.remove('visible');
+  document.getElementById('diagReport').classList.remove('visible');
+  document.getElementById('weedReport').classList.remove('visible');
+  errorMsg.classList.remove('visible');
+  document.getElementById('contextInput').value = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+function timestamp() {
+  return new Date().toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' });
+}
+</script>
+</body>
+</html>
