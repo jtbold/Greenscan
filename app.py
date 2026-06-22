@@ -1,9 +1,9 @@
 import os
 import requests
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 
-app = Flask(__name__, static_folder="static")
+app = Flask(__name__)
 CORS(app)
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
@@ -12,7 +12,7 @@ ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 
 @app.route("/")
 def index():
-    return send_from_directory("static", "index.html")
+    return send_file("index.html")
 
 
 @app.route("/api/analyze", methods=["POST"])
