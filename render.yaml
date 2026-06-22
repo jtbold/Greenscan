@@ -2,7 +2,7 @@ services:
   - type: web
     name: greenscan
     runtime: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: bash render_build.sh
     startCommand: gunicorn app:app
     envVars:
       - key: ANTHROPIC_API_KEY
